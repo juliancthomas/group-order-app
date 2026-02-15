@@ -50,13 +50,13 @@ async function transitionGroupStatus(
 
   const previousStatus = context.data.group.status;
   if (previousStatus === "submitted") {
-    return buildActionError("forbidden", "Submitted groups cannot change status.");
+    return buildActionError("conflict", "Order is already submitted and cannot be changed.");
   }
 
   if (!allowedCurrentStatuses.includes(previousStatus)) {
     return buildActionError(
       "conflict",
-      `Cannot transition group from ${previousStatus} to ${nextStatus}.`
+      `Invalid transition: ${previousStatus} -> ${nextStatus}.`
     );
   }
 

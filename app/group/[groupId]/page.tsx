@@ -188,6 +188,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           groupId={group.id}
           participantId={participant.id}
           isHost={participant.isHost}
+          initialGroupStatus={group.status}
           initialSnapshot={cartSnapshot}
         />
       </section>

@@ -3,15 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CartLockBanner } from "@/components/cart/CartLockBanner";
 import { ParticipantOrderSection } from "@/components/cart/ParticipantOrderSection";
 import { removeCartItem, upsertCartItem } from "@/server/actions/cart";
+import { lockGroup, submitOrder, unlockGroup } from "@/server/actions/checkout";
 import { subscribeToGroupRealtime, unsubscribeFromRealtime } from "@/lib/supabase/client";
 import type { CartItemView, CartSnapshot, ParticipantCartSection } from "@/types/domain";
+import type { GroupStatus } from "@/types/db";
+import { Button } from "@/components/ui/button";
 
 type CartIslandProps = {
   groupId: string;
   participantId: string;
   isHost: boolean;
+  initialGroupStatus: GroupStatus;
   initialSnapshot: CartSnapshot;
 };
 
@@ -24,19 +29,28 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: CartIslandProps) {
+export function CartIsland({
+  groupId,
+  participantId,
+  isHost,
+  initialGroupStatus,
+  initialSnapshot
+}: CartIslandProps) {
   const router = useRouter();
 
+  const [groupStatus, setGroupStatus] = useState<GroupStatus>(initialGroupStatus);
   const [snapshot, setSnapshot] = useState<CartSnapshot>(initialSnapshot);
   const [syncState, setSyncState] = useState<SyncState>("connecting");
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
+  const [checkoutPending, setCheckoutPending] = useState(false);
 
   useEffect(() => {
+    setGroupStatus(initialGroupStatus);
     setSnapshot(initialSnapshot);
     setLastRefreshAt(new Date());
-  }, [initialSnapshot]);
+  }, [initialGroupStatus, initialSnapshot]);
 
   useEffect(() => {
     const refreshFromServer = () => {
@@ -114,6 +128,11 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
 
   async function runQuantityMutation(item: CartItemView, nextQuantity: number) {
     setMutationError(null);
+    if (groupStatus !== "open") {
+      setMutationError("Cart edits are disabled while checkout is locked or submitted.");
+      return;
+    }
+
     setPendingItemId(item.id);
 
     try {
@@ -152,7 +171,33 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
   }
 
   function canEditSection(section: ParticipantCartSection): boolean {
-    return isHost || section.participantId === participantId;
+    return groupStatus === "open" && (isHost || section.participantId === participantId);
+  }
+
+  async function runCheckoutTransition(action: "lock" | "unlock" | "submit") {
+    setMutationError(null);
+    setCheckoutPending(true);
+
+    try {
+      const result =
+        action === "lock"
+          ? await lockGroup({ groupId, hostParticipantId: participantId })
+          : action === "unlock"
+            ? await unlockGroup({ groupId, hostParticipantId: participantId })
+            : await submitOrder({ groupId, hostParticipantId: participantId });
+
+      if (!result.ok) {
+        setMutationError(result.error.message);
+        return;
+      }
+
+      setGroupStatus(result.data.group.status);
+      router.refresh();
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Checkout transition failed.");
+    } finally {
+      setCheckoutPending(false);
+    }
   }
 
   return (
@@ -176,6 +221,13 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
       <p className="mt-1 text-sm text-brand-dark/80">
         View mode: <span className="font-semibold text-brand-dark">{isHost ? "Host" : "Guest"}</span>
       </p>
+      <p className="mt-1 text-sm text-brand-dark/80">
+        Group status: <span className="font-semibold text-brand-dark">{groupStatus}</span>
+      </p>
+
+      <div className="mt-3">
+        <CartLockBanner status={groupStatus} isHost={isHost} />
+      </div>
 
       {snapshot.mode === "host" ? (
         <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
@@ -206,6 +258,36 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
         <p className="mt-3 rounded-md bg-brand-primary/10 px-3 py-2 text-sm text-brand-dark">
           {mutationError}
         </p>
+      ) : null}
+
+      {isHost ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {groupStatus === "open" ? (
+            <Button type="button" onClick={() => runCheckoutTransition("lock")} disabled={checkoutPending}>
+              Review Order
+            </Button>
+          ) : null}
+          {groupStatus === "locked" ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => runCheckoutTransition("unlock")}
+                disabled={checkoutPending}
+              >
+                Back to Editing
+              </Button>
+              <Button
+                type="button"
+                variant="accent"
+                onClick={() => runCheckoutTransition("submit")}
+                disabled={checkoutPending}
+              >
+                Submit Order
+              </Button>
+            </>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="mt-4 space-y-3">
