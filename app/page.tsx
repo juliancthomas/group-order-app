@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import { createGroupWithHost } from "@/server/actions/groups";
 
 type HomePageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     group?: string | string[];
     invite?: string | string[];
-  };
+  }>;
 };
 
 function readParam(value: string | string[] | undefined): string | null {
@@ -24,8 +24,9 @@ function readParam(value: string | string[] | undefined): string | null {
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const inviteGroup = readParam(searchParams?.group);
-  const inviteEmail = readParam(searchParams?.invite);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const inviteGroup = readParam(resolvedSearchParams?.group);
+  const inviteEmail = readParam(resolvedSearchParams?.invite);
 
   if (inviteGroup && inviteEmail) {
     redirect(`/group/${inviteGroup}?invite=${encodeURIComponent(inviteEmail)}`);

@@ -9,7 +9,8 @@ import { InviteFriendDialog } from "@/components/session/InviteFriendDialog";
 import { ParticipantBadge } from "@/components/session/ParticipantBadge";
 import { ParticipantList } from "@/components/session/ParticipantList";
 import { getCartSnapshotForHydration } from "@/server/actions/cart";
-import { getGroupById, getGroupParticipantContext, toGroup, toParticipant } from "@/server/actions/groups";
+import { getGroupById, getGroupParticipantContext } from "@/server/actions/groups";
+import { toGroup, toParticipant } from "@/server/actions/groups-shared";
 import { joinOrResumeParticipant, listParticipants } from "@/server/actions/participants";
 import { isUuid } from "@/server/validators/session";
 

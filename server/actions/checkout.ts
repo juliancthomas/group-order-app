@@ -1,10 +1,10 @@
 "use server";
 
 import {
-  assertHostParticipantForGroup,
   buildActionError,
   toGroup
-} from "@/server/actions/groups";
+} from "@/server/actions/groups-shared";
+import { assertHostParticipantForGroup } from "@/server/actions/groups";
 import { isAllowedGroupStatusTransition } from "@/lib/status-transitions";
 import { isUuid } from "@/server/validators/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
