@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, useEffect, useMemo, useState } from "react";
+import { Activity, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CartLockBanner } from "@/components/cart/CartLockBanner";
@@ -57,12 +57,13 @@ export function CartIsland({
     setLastRefreshAt(new Date());
   }, [initialGroupStatus, initialSnapshot, initialSubmittedAt]);
 
-  useEffect(() => {
-    const refreshFromServer = () => {
-      router.refresh();
-      setLastRefreshAt(new Date());
-    };
+  // Extract refresh logic as an Effect Event to avoid reconnecting when router changes
+  const refreshFromServer = useEffectEvent(() => {
+    router.refresh();
+    setLastRefreshAt(new Date());
+  });
 
+  useEffect(() => {
     const channel = subscribeToGroupRealtime({
       groupId,
       onCartChange: refreshFromServer,
@@ -82,7 +83,13 @@ export function CartIsland({
     return () => {
       unsubscribeFromRealtime(channel);
     };
-  }, [groupId, router]);
+  }, [groupId]);
+
+  // Extract polling logic as an Effect Event to avoid restarting interval unnecessarily
+  const pollServerForUpdates = useEffectEvent(() => {
+    router.refresh();
+    setLastRefreshAt(new Date());
+  });
 
   useEffect(() => {
     if (syncState !== "reconnecting") {
@@ -90,14 +97,13 @@ export function CartIsland({
     }
 
     const interval = window.setInterval(() => {
-      router.refresh();
-      setLastRefreshAt(new Date());
+      pollServerForUpdates();
     }, 5000);
 
     return () => {
       window.clearInterval(interval);
     };
-  }, [router, syncState]);
+  }, [syncState]);
 
   const totalItems = useMemo(() => {
     if (snapshot.mode === "host") {
