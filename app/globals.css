@@ -2,32 +2,37 @@
 @config "../tailwind.config.ts";
 
 :root {
+  /* Base brand tokens (raw values). */
+  --hawks-torch-red: 224 58 62;
+  --hawks-volt-green: 193 211 47;
+  --hawks-heritage-black: 38 40 42;
+
+  /* Semantic brand tokens. */
+  --brand-primary: var(--hawks-torch-red);
+  --brand-accent: var(--hawks-volt-green);
+  --brand-dark: var(--hawks-heritage-black);
+
   --background: 255 255 255;
-  --foreground: 38 40 42;
+  --foreground: var(--brand-dark);
 
-  /* Semantic brand tokens used by Tailwind utilities (Step 2 completes mappings). */
-  --brand-primary: 224 58 62;
-  --brand-accent: 193 211 47;
-  --brand-dark: 38 40 42;
-
-  /* Shadcn baseline tokens (mapped to semantic values in a follow-up step). */
+  /* shadcn token mapping to semantic values. */
   --card: 255 255 255;
-  --card-foreground: 38 40 42;
+  --card-foreground: var(--brand-dark);
   --popover: 255 255 255;
-  --popover-foreground: 38 40 42;
-  --primary: 224 58 62;
+  --popover-foreground: var(--brand-dark);
+  --primary: var(--brand-primary);
   --primary-foreground: 255 255 255;
-  --secondary: 245 245 245;
-  --secondary-foreground: 38 40 42;
+  --secondary: 241 245 249;
+  --secondary-foreground: var(--brand-dark);
   --muted: 245 245 245;
-  --muted-foreground: 115 115 115;
-  --accent: 193 211 47;
-  --accent-foreground: 38 40 42;
+  --muted-foreground: 100 116 139;
+  --accent: var(--brand-accent);
+  --accent-foreground: var(--brand-dark);
   --destructive: 190 18 60;
   --destructive-foreground: 255 255 255;
   --border: 228 228 231;
   --input: 228 228 231;
-  --ring: 224 58 62;
+  --ring: var(--brand-primary);
   --radius: 0.75rem;
 }
 
