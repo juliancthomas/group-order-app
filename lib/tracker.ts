@@ -5,10 +5,6 @@ export type ComputeTrackerStageInput = {
   serverNowIso: string;
 };
 
-/**
- * Placeholder implementation for Step 3.
- * Full stage transition thresholds are implemented in Step 16.
- */
 export function computeTrackerStage(input: ComputeTrackerStageInput): TrackerComputation {
   if (!input.submittedAt) {
     return {
@@ -30,11 +26,19 @@ export function computeTrackerStage(input: ComputeTrackerStageInput): TrackerCom
   const elapsedSeconds = Math.max(0, Math.floor((serverNowTime - submittedTime) / 1000));
 
   return {
-    stage: resolvePlaceholderStage(elapsedSeconds),
+    stage: resolveTrackerStage(elapsedSeconds),
     elapsedSeconds
   };
 }
 
-function resolvePlaceholderStage(_elapsedSeconds: number): TrackerStage {
+export function resolveTrackerStage(elapsedSeconds: number): TrackerStage {
+  if (elapsedSeconds >= 45) {
+    return "delivered";
+  }
+
+  if (elapsedSeconds >= 15) {
+    return "in_progress";
+  }
+
   return "ordered";
 }

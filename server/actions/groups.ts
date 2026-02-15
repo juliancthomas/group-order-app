@@ -209,3 +209,7 @@ export async function getMenuItems(): Promise<ActionResult<MenuItem[]>> {
     data: result.data.map(toMenuItem)
   };
 }
+
+export async function getServerNowIso(): Promise<string> {
+  return new Date().toISOString();
+}

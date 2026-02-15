@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { CartLockBanner } from "@/components/cart/CartLockBanner";
 import { ParticipantOrderSection } from "@/components/cart/ParticipantOrderSection";
+import { OrderTracker } from "@/components/tracker/OrderTracker";
 import { removeCartItem, upsertCartItem } from "@/server/actions/cart";
 import { lockGroup, submitOrder, unlockGroup } from "@/server/actions/checkout";
 import { subscribeToGroupRealtime, unsubscribeFromRealtime } from "@/lib/supabase/client";
@@ -17,6 +18,7 @@ type CartIslandProps = {
   participantId: string;
   isHost: boolean;
   initialGroupStatus: GroupStatus;
+  initialSubmittedAt: string | null;
   initialSnapshot: CartSnapshot;
 };
 
@@ -34,11 +36,13 @@ export function CartIsland({
   participantId,
   isHost,
   initialGroupStatus,
+  initialSubmittedAt,
   initialSnapshot
 }: CartIslandProps) {
   const router = useRouter();
 
   const [groupStatus, setGroupStatus] = useState<GroupStatus>(initialGroupStatus);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(initialSubmittedAt);
   const [snapshot, setSnapshot] = useState<CartSnapshot>(initialSnapshot);
   const [syncState, setSyncState] = useState<SyncState>("connecting");
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
@@ -48,9 +52,10 @@ export function CartIsland({
 
   useEffect(() => {
     setGroupStatus(initialGroupStatus);
+    setSubmittedAt(initialSubmittedAt);
     setSnapshot(initialSnapshot);
     setLastRefreshAt(new Date());
-  }, [initialGroupStatus, initialSnapshot]);
+  }, [initialGroupStatus, initialSnapshot, initialSubmittedAt]);
 
   useEffect(() => {
     const refreshFromServer = () => {
@@ -192,6 +197,7 @@ export function CartIsland({
       }
 
       setGroupStatus(result.data.group.status);
+      setSubmittedAt(result.data.group.submittedAt);
       router.refresh();
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : "Checkout transition failed.");
@@ -202,6 +208,18 @@ export function CartIsland({
 
   return (
     <section className="rounded-xl border border-brand-dark/20 bg-background p-6 shadow-sm">
+      {groupStatus === "submitted" ? (
+        submittedAt ? (
+          <OrderTracker submittedAt={submittedAt} />
+        ) : (
+          <div className="rounded-md border border-brand-dark/20 bg-brand-accent/20 px-4 py-3 text-sm text-brand-dark">
+            Order was submitted, but submission timestamp is missing.
+          </div>
+        )
+      ) : null}
+
+      {groupStatus !== "submitted" ? (
+        <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-brand-dark">Live Cart</h2>
         <span
@@ -320,6 +338,8 @@ export function CartIsland({
           ? `Last refresh: ${lastRefreshAt.toLocaleTimeString()}`
           : "Waiting for first sync..."}
       </p>
+        </>
+      ) : null}
     </section>
   );
 }
