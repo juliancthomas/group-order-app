@@ -1,0 +1,11 @@
+---
+description: Guidelines for shadcn/ui component usage and accessibility.
+globs: "components/ui/*.tsx"
+alwaysApply: false
+---
+# shadcn/ui Standards
+
+- **Source Code Ownership:** Treat components in `components/ui` as owned source code. Feel free to modify the Radix primitives directly to match Hawks' branding.
+- **Accessibility:** Never remove ARIA labels or keyboard listeners provided by Radix.
+- **Composition:** Prefer creating "Product Blocks" (e.g., `ProductCard.tsx`) that compose multiple UI primitives rather than massive screen-level components.
+- **Tailwind v4:** Use `data-slot` attributes for complex styling instead of deeply nested `cn()` calls where possible.

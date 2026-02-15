@@ -1,0 +1,11 @@
+---
+description: Docker configuration for optimized Next.js standalone builds.
+globs: "Dockerfile, docker-compose.yml"
+alwaysApply: false
+---
+# Docker Optimization
+
+- **Build Mode:** Use `output: 'standalone'` in `next.config.js` to reduce image size to ~200MB.
+- **Multi-stage:** Use a multi-stage `Dockerfile` (deps -> builder -> runner).
+- **Simplicity:** The `docker-compose.yml` must only require `docker-compose up` to run the app. Use environment variables for Supabase keys.
+- **User:** Run as a non-root user (`nextjs`) in the final stage for security best practices.

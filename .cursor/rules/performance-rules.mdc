@@ -1,0 +1,11 @@
+---
+description: Ensure high performance and SEO via Server Components and Client Islands.
+globs: "app/**/*.{tsx,ts}"
+alwaysApply: true
+---
+# Performance & Architecture
+
+- **Menu Items:** MUST be fetched in a Server Component to ensure zero-JS footprint for the list and optimal SEO.
+- **Cart Island:** The shared cart component must be a isolated `'use client'` island.
+- **Data Fetching:** Use `Suspense` for loading states while the menu is being hydrated.
+- **Images:** Use `next/image` with proper `priority` for the 2-3 menu products to optimize LCP.

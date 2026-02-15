@@ -1,0 +1,23 @@
+---
+description: Enforce Atlanta Hawks brand system using semantic design tokens in Tailwind v4.
+globs: "**/*.{tsx,ts,css}"
+alwaysApply: true
+---
+# Semantic Design Tokens
+
+We use a two-tier token system: 
+1. **Base Tokens** (Hex codes) 
+2. **Semantic Tokens** (Functional names like 'brand-primary')
+
+## Rules
+- **DO NOT** use literal color names (e.g., `text-red-600` or `bg-hawks-red`) in components.
+- **DO** use semantic functional tokens:
+  - `bg-brand-primary` (Hawks Torch Red: #E03A3E)
+  - `text-brand-accent` (Hawks Volt Green: #C1D32F)
+  - `border-brand-dark` (Hawks Heritage Black: #26282A)
+- All shadcn components must be mapped to these semantic tokens in `globals.css`.
+
+## Reference Mapping
+- Primary Action: `var(--brand-primary)`
+- Highlight/Success: `var(--brand-accent)`
+- Deep Backgrounds: `var(--brand-dark)`

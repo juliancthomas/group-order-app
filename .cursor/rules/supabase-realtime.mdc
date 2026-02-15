@@ -1,0 +1,11 @@
+---
+description: Logic for real-time group order syncing and multi-user simulation.
+globs: "lib/supabase/*.ts, components/cart/*.tsx"
+alwaysApply: false
+---
+# Supabase Realtime Strategy
+
+- **Subscription:** Use `supabase.channel()` to listen for `INSERT` and `UPDATE` events on the `cart_items` table.
+- **Multi-Tab Sync:** Ensure the state update is optimistic on the current tab but reconciled immediately when the database broadcast arrives.
+- **Group Limit:** Hard-enforce the 3-participant limit using Postgres RLS or a database function, not just frontend logic.
+- **Host View:** The Host's total must be an aggregate calculation of all participant rows in the `cart_items` table.
