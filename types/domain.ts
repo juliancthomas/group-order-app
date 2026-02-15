@@ -111,3 +111,27 @@ export type JoinOrResumeParticipantPayload = {
 export type ListParticipantsInput = {
   groupId: string;
 };
+
+export type GetCartSnapshotInput = {
+  groupId: string;
+  requesterParticipantId: string;
+};
+
+export type UpsertCartItemInput = {
+  groupId: string;
+  actorParticipantId: string;
+  targetParticipantId: string;
+  menuItemId: string;
+  quantity: number;
+};
+
+export type RemoveCartItemInput = {
+  groupId: string;
+  actorParticipantId: string;
+  cartItemId: string;
+};
+
+export type RemoveCartItemPayload = {
+  success: true;
+  cartItemId: string;
+};
