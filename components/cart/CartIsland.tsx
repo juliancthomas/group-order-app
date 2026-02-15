@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ParticipantOrderSection } from "@/components/cart/ParticipantOrderSection";
+import { removeCartItem, upsertCartItem } from "@/server/actions/cart";
 import { subscribeToGroupRealtime, unsubscribeFromRealtime } from "@/lib/supabase/client";
-import type { CartSnapshot } from "@/types/domain";
+import type { CartItemView, CartSnapshot, ParticipantCartSection } from "@/types/domain";
 
 type CartIslandProps = {
   groupId: string;
@@ -28,6 +30,8 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
   const [snapshot, setSnapshot] = useState<CartSnapshot>(initialSnapshot);
   const [syncState, setSyncState] = useState<SyncState>("connecting");
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     setSnapshot(initialSnapshot);
@@ -87,6 +91,70 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
     return snapshot.items.reduce((sum, item) => sum + item.quantity, 0);
   }, [snapshot]);
 
+  const hostSections = useMemo<ParticipantCartSection[]>(() => {
+    if (snapshot.mode !== "host") {
+      return [];
+    }
+    return snapshot.sections;
+  }, [snapshot]);
+
+  const guestSection = useMemo<ParticipantCartSection | null>(() => {
+    if (snapshot.mode !== "guest") {
+      return null;
+    }
+
+    return {
+      participantId: snapshot.participantId,
+      participantEmail: "Your order",
+      isHost: false,
+      items: snapshot.items,
+      subtotal: snapshot.subtotal
+    };
+  }, [snapshot]);
+
+  async function runQuantityMutation(item: CartItemView, nextQuantity: number) {
+    setMutationError(null);
+    setPendingItemId(item.id);
+
+    try {
+      if (nextQuantity <= 0) {
+        const removeResult = await removeCartItem({
+          groupId,
+          actorParticipantId: participantId,
+          cartItemId: item.id
+        });
+
+        if (!removeResult.ok) {
+          setMutationError(removeResult.error.message);
+          return;
+        }
+      } else {
+        const upsertResult = await upsertCartItem({
+          groupId,
+          actorParticipantId: participantId,
+          targetParticipantId: item.participantId,
+          menuItemId: item.menuItemId,
+          quantity: nextQuantity
+        });
+
+        if (!upsertResult.ok) {
+          setMutationError(upsertResult.error.message);
+          return;
+        }
+      }
+
+      router.refresh();
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Cart update failed.");
+    } finally {
+      setPendingItemId(null);
+    }
+  }
+
+  function canEditSection(section: ParticipantCartSection): boolean {
+    return isHost || section.participantId === participantId;
+  }
+
   return (
     <section className="rounded-xl border border-brand-dark/20 bg-background p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -133,6 +201,37 @@ export function CartIsland({ groupId, participantId, isHost, initialSnapshot }: 
           </p>
         </div>
       )}
+
+      {mutationError ? (
+        <p className="mt-3 rounded-md bg-brand-primary/10 px-3 py-2 text-sm text-brand-dark">
+          {mutationError}
+        </p>
+      ) : null}
+
+      <div className="mt-4 space-y-3">
+        {snapshot.mode === "host"
+          ? hostSections.map((section) => (
+              <ParticipantOrderSection
+                key={section.participantId}
+                section={section}
+                canEdit={canEditSection(section)}
+                pendingItemId={pendingItemId}
+                onIncrease={(item) => runQuantityMutation(item, item.quantity + 1)}
+                onDecrease={(item) => runQuantityMutation(item, item.quantity - 1)}
+                onRemove={(item) => runQuantityMutation(item, 0)}
+              />
+            ))
+          : guestSection && (
+              <ParticipantOrderSection
+                section={guestSection}
+                canEdit={canEditSection(guestSection)}
+                pendingItemId={pendingItemId}
+                onIncrease={(item) => runQuantityMutation(item, item.quantity + 1)}
+                onDecrease={(item) => runQuantityMutation(item, item.quantity - 1)}
+                onRemove={(item) => runQuantityMutation(item, 0)}
+              />
+            )}
+      </div>
 
       <p className="mt-4 text-xs text-brand-dark/60">
         {lastRefreshAt
