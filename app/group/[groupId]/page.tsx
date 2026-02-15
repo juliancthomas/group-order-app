@@ -15,13 +15,13 @@ import { joinOrResumeParticipant, listParticipants } from "@/server/actions/part
 import { isUuid } from "@/server/validators/session";
 
 type GroupPageProps = {
-  params: {
+  params: Promise<{
     groupId: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     invite?: string | string[];
     participant?: string | string[];
-  };
+  }>;
 };
 
 function readParam(value: string | string[] | undefined): string | null {
@@ -123,7 +123,8 @@ function MissingIdentityState({ groupId }: { groupId: string }) {
 }
 
 export default async function GroupPage({ params, searchParams }: GroupPageProps) {
-  const groupId = params.groupId;
+  const resolvedParams = await params;
+  const groupId = resolvedParams.groupId;
   if (!isUuid(groupId)) {
     notFound();
   }
@@ -136,7 +137,8 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
     throw new Error(groupResult.error.message);
   }
 
-  const inviteEmail = readParam(searchParams?.invite);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const inviteEmail = readParam(resolvedSearchParams?.invite);
   if (inviteEmail) {
     const joinResult = await joinOrResumeParticipant({ groupId, email: inviteEmail });
     if (!joinResult.ok) {
@@ -149,7 +151,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
     redirect(`/group/${groupId}?participant=${joinResult.data.participant.id}`);
   }
 
-  const participantId = readParam(searchParams?.participant);
+  const participantId = readParam(resolvedSearchParams?.participant);
   if (!participantId || !isUuid(participantId)) {
     return <MissingIdentityState groupId={groupId} />;
   }
