@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/db";
 
@@ -32,4 +33,57 @@ export function createSupabaseBrowserClient() {
   });
 
   return browserClient;
+}
+
+type GroupRealtimeSubscriptionInput = {
+  groupId: string;
+  onCartChange: () => void;
+  onGroupChange?: () => void;
+  onStatusChange?: (status: string) => void;
+};
+
+export function subscribeToGroupRealtime({
+  groupId,
+  onCartChange,
+  onGroupChange,
+  onStatusChange
+}: GroupRealtimeSubscriptionInput): RealtimeChannel {
+  const supabase = createSupabaseBrowserClient();
+
+  const channel = supabase
+    .channel(`group-sync:${groupId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "cart_items",
+        filter: `group_id=eq.${groupId}`
+      },
+      () => {
+        onCartChange();
+      }
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "groups",
+        filter: `id=eq.${groupId}`
+      },
+      () => {
+        onGroupChange?.();
+      }
+    )
+    .subscribe((status) => {
+      onStatusChange?.(status);
+    });
+
+  return channel;
+}
+
+export function unsubscribeFromRealtime(channel: RealtimeChannel): void {
+  const supabase = createSupabaseBrowserClient();
+  void supabase.removeChannel(channel);
 }

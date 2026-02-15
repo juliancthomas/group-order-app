@@ -2,11 +2,13 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { CartIsland } from "@/components/cart/CartIsland";
 import { MenuListServer } from "@/components/menu/MenuList.server";
 import { IdentityRevalidator } from "@/components/session/IdentityRevalidator";
 import { InviteFriendDialog } from "@/components/session/InviteFriendDialog";
 import { ParticipantBadge } from "@/components/session/ParticipantBadge";
 import { ParticipantList } from "@/components/session/ParticipantList";
+import { getCartSnapshotForHydration } from "@/server/actions/cart";
 import { getGroupById, getGroupParticipantContext, toGroup, toParticipant } from "@/server/actions/groups";
 import { joinOrResumeParticipant, listParticipants } from "@/server/actions/participants";
 import { isUuid } from "@/server/validators/session";
@@ -140,6 +142,10 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
   const participants = participantsResult.data;
   const isHostViewer = participant.isHost;
   const inviteDisabled = participants.length >= 3;
+  const cartSnapshot = await getCartSnapshotForHydration({
+    groupId,
+    requesterParticipantId: participant.id
+  });
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
@@ -175,6 +181,15 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
       <section className="mt-6 grid gap-4">
         <ParticipantList groupId={group.id} participants={participants} isHostViewer={isHostViewer} />
         {isHostViewer ? <InviteFriendDialog groupId={group.id} disabled={inviteDisabled} /> : null}
+      </section>
+
+      <section className="mt-6">
+        <CartIsland
+          groupId={group.id}
+          participantId={participant.id}
+          isHost={participant.isHost}
+          initialSnapshot={cartSnapshot}
+        />
       </section>
 
       <section className="mt-6">

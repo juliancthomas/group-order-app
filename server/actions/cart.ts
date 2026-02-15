@@ -381,3 +381,14 @@ export async function removeCartItem(
     }
   };
 }
+
+export async function getCartSnapshotForHydration(
+  input: GetCartSnapshotInput
+): Promise<CartSnapshot> {
+  const result = await getCartSnapshot(input);
+  if (!result.ok) {
+    throw new Error(result.error.message);
+  }
+
+  return result.data;
+}
