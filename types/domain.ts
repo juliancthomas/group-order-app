@@ -74,3 +74,40 @@ export type TrackerComputation = {
   stage: TrackerStage;
   elapsedSeconds: number;
 };
+
+export type ActionErrorCode =
+  | "invalid_input"
+  | "not_found"
+  | "forbidden"
+  | "conflict"
+  | "database_error";
+
+export type ActionError = {
+  code: ActionErrorCode;
+  message: string;
+};
+
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ActionError };
+
+export type CreateGroupWithHostInput = {
+  hostEmail: string;
+};
+
+export type CreateGroupWithHostPayload = {
+  group: Group;
+  participant: Participant;
+};
+
+export type JoinOrResumeParticipantInput = {
+  groupId: string;
+  email: string;
+};
+
+export type JoinOrResumeParticipantPayload = {
+  participant: Participant;
+  isNew: boolean;
+};
+
+export type ListParticipantsInput = {
+  groupId: string;
+};
