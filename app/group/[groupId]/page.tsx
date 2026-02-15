@@ -4,8 +4,11 @@ import { notFound, redirect } from "next/navigation";
 
 import { MenuListServer } from "@/components/menu/MenuList.server";
 import { IdentityRevalidator } from "@/components/session/IdentityRevalidator";
+import { InviteFriendDialog } from "@/components/session/InviteFriendDialog";
+import { ParticipantBadge } from "@/components/session/ParticipantBadge";
+import { ParticipantList } from "@/components/session/ParticipantList";
 import { getGroupById, getGroupParticipantContext, toGroup, toParticipant } from "@/server/actions/groups";
-import { joinOrResumeParticipant } from "@/server/actions/participants";
+import { joinOrResumeParticipant, listParticipants } from "@/server/actions/participants";
 import { isUuid } from "@/server/validators/session";
 
 type GroupPageProps = {
@@ -129,6 +132,14 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   const group = toGroup(contextResult.data.group);
   const participant = toParticipant(contextResult.data.participant);
+  const participantsResult = await listParticipants({ groupId });
+  if (!participantsResult.ok) {
+    throw new Error(participantsResult.error.message);
+  }
+
+  const participants = participantsResult.data;
+  const isHostViewer = participant.isHost;
+  const inviteDisabled = participants.length >= 3;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
@@ -144,6 +155,9 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           Group Session
         </p>
         <h1 className="mt-2 text-2xl font-bold text-brand-dark">Hawks Group Order</h1>
+        <div className="mt-3">
+          <ParticipantBadge email={participant.email} isHost={participant.isHost} />
+        </div>
         <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
           <p>
             <span className="font-semibold text-brand-dark">Group ID:</span> {group.id}
@@ -152,14 +166,16 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
             <span className="font-semibold text-brand-dark">Status:</span> {group.status}
           </p>
           <p>
-            <span className="font-semibold text-brand-dark">Participant:</span> {participant.email}
-          </p>
-          <p>
             <span className="font-semibold text-brand-dark">Role:</span>{" "}
             {participant.isHost ? "Host" : "Guest"}
           </p>
         </div>
       </header>
+
+      <section className="mt-6 grid gap-4">
+        <ParticipantList groupId={group.id} participants={participants} isHostViewer={isHostViewer} />
+        {isHostViewer ? <InviteFriendDialog groupId={group.id} disabled={inviteDisabled} /> : null}
+      </section>
 
       <section className="mt-6">
         <Suspense fallback={<MenuFallback />}>
