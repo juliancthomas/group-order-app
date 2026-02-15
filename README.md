@@ -25,8 +25,30 @@ Realtime collaborative food ordering demo built with Next.js App Router and Supa
 
 ## Docker Quickstart
 
-The final deployment workflow targets a single command:
+### Reviewer Runbook
 
-- `docker-compose up --build`
+1. Create a local `.env` file (or export shell env vars) with:
+   - `NEXT_PUBLIC_SUPABASE_URL=...`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`
+2. Build and run:
+   - `docker-compose up --build`
+3. Open `http://localhost:3000`.
 
-Docker artifacts are added in a later implementation step after app features are in place.
+### Verification Checklist
+
+- Container builds successfully without manual image edits.
+- App boots on `http://localhost:3000`.
+- Group session initializes on first page load.
+- Menu renders (seed data visible) and Supabase calls succeed.
+- Realtime/cart interactions continue to work in multiple tabs.
+
+### Troubleshooting
+
+- `Missing Supabase environment variables` in logs:
+  - Ensure `.env` exists for Compose (or environment is exported) and includes both required vars.
+- Build fails on dependency resolution:
+  - Run `npm install` locally once and retry `docker-compose up --build`.
+- Port 3000 already in use:
+  - Stop local dev server or change Compose port mapping.
+- Menu empty in container:
+  - Re-run `supabase/seed.sql` in Supabase and refresh.
