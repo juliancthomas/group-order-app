@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Activity, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CartLockBanner } from "@/components/cart/CartLockBanner";
@@ -216,143 +216,141 @@ export function CartIsland({
 
   return (
     <section className="rounded-xl border border-brand-dark/20 bg-background p-6 shadow-sm">
-      {groupStatus === "submitted" ? (
-        submittedAt ? (
+      <Activity mode={groupStatus === "submitted" ? "visible" : "hidden"}>
+        {submittedAt ? (
           <OrderTracker submittedAt={submittedAt} />
         ) : (
           <div className="rounded-md border border-brand-dark/20 bg-brand-accent/20 px-4 py-3 text-sm text-brand-dark">
             Order was submitted, but submission timestamp is missing.
           </div>
-        )
-      ) : null}
+        )}
+      </Activity>
 
-      {groupStatus !== "submitted" ? (
-        <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-brand-dark">Live Cart</h2>
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            syncState === "connected"
-              ? "bg-brand-accent text-brand-dark"
-              : "bg-brand-primary text-white"
-          }`}
-        >
-          {syncState === "connected" ? "Realtime connected" : "Reconnecting..."}
-        </span>
-      </div>
-
-      <p className="mt-2 text-sm text-brand-dark/80">
-        Participant: <span className="font-semibold text-brand-dark">{participantId}</span>
-      </p>
-      <p className="mt-1 text-sm text-brand-dark/80">
-        View mode: <span className="font-semibold text-brand-dark">{isHost ? "Host" : "Guest"}</span>
-      </p>
-      <p className="mt-1 text-sm text-brand-dark/80">
-        Group status: <span className="font-semibold text-brand-dark">{groupStatus}</span>
-      </p>
-
-      <div className="mt-3">
-        <CartLockBanner status={groupStatus} isHost={isHost} />
-      </div>
-
-      {snapshot.mode === "host" ? (
-        <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
-          <p>
-            Sections: <span className="font-semibold text-brand-dark">{snapshot.sections.length}</span>
-          </p>
-          <p>
-            Items: <span className="font-semibold text-brand-dark">{totalItems}</span>
-          </p>
-          <p className="sm:col-span-2">
-            Group total:{" "}
-            <span className="font-semibold text-brand-primary">{formatCurrency(snapshot.groupTotal)}</span>
-          </p>
+      <Activity mode={groupStatus !== "submitted" ? "visible" : "hidden"}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-brand-dark">Live Cart</h2>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+              syncState === "connected"
+                ? "bg-brand-accent text-brand-dark"
+                : "bg-brand-primary text-white"
+            }`}
+          >
+            {syncState === "connected" ? "Realtime connected" : "Reconnecting..."}
+          </span>
         </div>
-      ) : (
-        <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
-          <p>
-            Items: <span className="font-semibold text-brand-dark">{totalItems}</span>
-          </p>
-          <p>
-            Subtotal:{" "}
-            <span className="font-semibold text-brand-primary">{formatCurrency(snapshot.subtotal)}</span>
-          </p>
-        </div>
-      )}
 
-      {mutationError ? (
-        <p className="mt-3 rounded-md bg-brand-primary/10 px-3 py-2 text-sm text-brand-dark">
-          {mutationError}
+        <p className="mt-2 text-sm text-brand-dark/80">
+          Participant: <span className="font-semibold text-brand-dark">{participantId}</span>
         </p>
-      ) : null}
-      {syncState === "reconnecting" ? (
-        <p className="mt-3 rounded-md border border-brand-dark/20 bg-background px-3 py-2 text-sm text-brand-dark/80">
-          Realtime connection lost. Using 5-second polling until sync recovers.
+        <p className="mt-1 text-sm text-brand-dark/80">
+          View mode: <span className="font-semibold text-brand-dark">{isHost ? "Host" : "Guest"}</span>
         </p>
-      ) : null}
+        <p className="mt-1 text-sm text-brand-dark/80">
+          Group status: <span className="font-semibold text-brand-dark">{groupStatus}</span>
+        </p>
 
-      {isHost ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {groupStatus === "open" ? (
-            <Button type="button" onClick={() => runCheckoutTransition("lock")} disabled={checkoutPending}>
-              Review Order
-            </Button>
-          ) : null}
-          {groupStatus === "locked" ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => runCheckoutTransition("unlock")}
-                disabled={checkoutPending}
-              >
-                Back to Editing
-              </Button>
-              <Button
-                type="button"
-                variant="accent"
-                onClick={() => runCheckoutTransition("submit")}
-                disabled={checkoutPending}
-              >
-                Submit Order
-              </Button>
-            </>
-          ) : null}
+        <div className="mt-3">
+          <CartLockBanner status={groupStatus} isHost={isHost} />
         </div>
-      ) : null}
 
-      <div className="mt-4 space-y-3">
-        {snapshot.mode === "host"
-          ? hostSections.map((section) => (
-              <ParticipantOrderSection
-                key={section.participantId}
-                section={section}
-                canEdit={canEditSection(section)}
-                pendingItemId={pendingItemId}
-                onIncrease={(item) => runQuantityMutation(item, item.quantity + 1)}
-                onDecrease={(item) => runQuantityMutation(item, item.quantity - 1)}
-                onRemove={(item) => runQuantityMutation(item, 0)}
-              />
-            ))
-          : guestSection && (
-              <ParticipantOrderSection
-                section={guestSection}
-                canEdit={canEditSection(guestSection)}
-                pendingItemId={pendingItemId}
-                onIncrease={(item) => runQuantityMutation(item, item.quantity + 1)}
-                onDecrease={(item) => runQuantityMutation(item, item.quantity - 1)}
-                onRemove={(item) => runQuantityMutation(item, 0)}
-              />
-            )}
-      </div>
+        {snapshot.mode === "host" ? (
+          <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
+            <p>
+              Sections: <span className="font-semibold text-brand-dark">{snapshot.sections.length}</span>
+            </p>
+            <p>
+              Items: <span className="font-semibold text-brand-dark">{totalItems}</span>
+            </p>
+            <p className="sm:col-span-2">
+              Group total:{" "}
+              <span className="font-semibold text-brand-primary">{formatCurrency(snapshot.groupTotal)}</span>
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
+            <p>
+              Items: <span className="font-semibold text-brand-dark">{totalItems}</span>
+            </p>
+            <p>
+              Subtotal:{" "}
+              <span className="font-semibold text-brand-primary">{formatCurrency(snapshot.subtotal)}</span>
+            </p>
+          </div>
+        )}
 
-      <p className="mt-4 text-xs text-brand-dark/60">
-        {lastRefreshAt
-          ? `Last refresh: ${lastRefreshAt.toLocaleTimeString()}`
-          : "Waiting for first sync..."}
-      </p>
-        </>
-      ) : null}
+        {mutationError ? (
+          <p className="mt-3 rounded-md bg-brand-primary/10 px-3 py-2 text-sm text-brand-dark">
+            {mutationError}
+          </p>
+        ) : null}
+        {syncState === "reconnecting" ? (
+          <p className="mt-3 rounded-md border border-brand-dark/20 bg-background px-3 py-2 text-sm text-brand-dark/80">
+            Realtime connection lost. Using 5-second polling until sync recovers.
+          </p>
+        ) : null}
+
+        {isHost ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {groupStatus === "open" ? (
+              <Button type="button" onClick={() => runCheckoutTransition("lock")} disabled={checkoutPending}>
+                Review Order
+              </Button>
+            ) : null}
+            {groupStatus === "locked" ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runCheckoutTransition("unlock")}
+                  disabled={checkoutPending}
+                >
+                  Back to Editing
+                </Button>
+                <Button
+                  type="button"
+                  variant="accent"
+                  onClick={() => runCheckoutTransition("submit")}
+                  disabled={checkoutPending}
+                >
+                  Submit Order
+                </Button>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="mt-4 space-y-3">
+          {snapshot.mode === "host"
+            ? hostSections.map((section) => (
+                <ParticipantOrderSection
+                  key={section.participantId}
+                  section={section}
+                  canEdit={canEditSection(section)}
+                  pendingItemId={pendingItemId}
+                  onIncrease={(item) => runQuantityMutation(item, item.quantity + 1)}
+                  onDecrease={(item) => runQuantityMutation(item, item.quantity - 1)}
+                  onRemove={(item) => runQuantityMutation(item, 0)}
+                />
+              ))
+            : guestSection && (
+                <ParticipantOrderSection
+                  section={guestSection}
+                  canEdit={canEditSection(guestSection)}
+                  pendingItemId={pendingItemId}
+                  onIncrease={(item) => runQuantityMutation(item, item.quantity + 1)}
+                  onDecrease={(item) => runQuantityMutation(item, item.quantity - 1)}
+                  onRemove={(item) => runQuantityMutation(item, 0)}
+                />
+              )}
+        </div>
+
+        <p className="mt-4 text-xs text-brand-dark/60">
+          {lastRefreshAt
+            ? `Last refresh: ${lastRefreshAt.toLocaleTimeString()}`
+            : "Waiting for first sync..."}
+        </p>
+      </Activity>
     </section>
   );
 }
