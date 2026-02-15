@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   canActorMutateTarget,
+  canMutateCartForGroupStatus,
   validateGetCartSnapshotInput,
   validateRemoveCartItemInput,
   validateUpsertCartItemInput
@@ -254,7 +255,7 @@ export async function upsertCartItem(
     return contextResult;
   }
 
-  if (contextResult.data.group.status !== "open") {
+  if (!canMutateCartForGroupStatus(contextResult.data.group.status)) {
     return buildActionError("forbidden", "Cart can only be modified while the group is open.");
   }
 
@@ -331,7 +332,7 @@ export async function removeCartItem(
     return contextResult;
   }
 
-  if (contextResult.data.group.status !== "open") {
+  if (!canMutateCartForGroupStatus(contextResult.data.group.status)) {
     return buildActionError("forbidden", "Cart can only be modified while the group is open.");
   }
 

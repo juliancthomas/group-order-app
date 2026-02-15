@@ -4,6 +4,7 @@ import type {
   RemoveCartItemInput,
   UpsertCartItemInput
 } from "@/types/domain";
+import type { GroupStatus } from "@/types/db";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -144,4 +145,8 @@ export function validateRemoveCartItemInput(
 
 export function canActorMutateTarget(isActorHost: boolean, actorId: string, targetId: string): boolean {
   return isActorHost || actorId === targetId;
+}
+
+export function canMutateCartForGroupStatus(status: GroupStatus): boolean {
+  return status === "open";
 }

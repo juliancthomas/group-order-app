@@ -5,6 +5,7 @@ import {
   buildActionError,
   toGroup
 } from "@/server/actions/groups";
+import { isAllowedGroupStatusTransition } from "@/lib/status-transitions";
 import { isUuid } from "@/server/validators/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult, CheckoutActionInput, GroupTransition } from "@/types/domain";
@@ -53,7 +54,10 @@ async function transitionGroupStatus(
     return buildActionError("conflict", "Order is already submitted and cannot be changed.");
   }
 
-  if (!allowedCurrentStatuses.includes(previousStatus)) {
+  if (
+    !allowedCurrentStatuses.includes(previousStatus) ||
+    !isAllowedGroupStatusTransition(previousStatus, nextStatus)
+  ) {
     return buildActionError(
       "conflict",
       `Invalid transition: ${previousStatus} -> ${nextStatus}.`
