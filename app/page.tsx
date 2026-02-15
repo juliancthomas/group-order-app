@@ -1,12 +1,45 @@
-export default function HomePage() {
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-6 py-16">
-      <div className="w-full rounded-xl border border-brand-dark/20 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold text-brand-dark">Hawks Group Order</h1>
-        <p className="mt-3 text-base text-brand-dark/80">
-          Foundation setup is complete. Continue implementing features from the plan.
-        </p>
-      </div>
-    </main>
+import { redirect } from "next/navigation";
+
+import { createGroupWithHost } from "@/server/actions/groups";
+
+type HomePageProps = {
+  searchParams?: {
+    group?: string | string[];
+    invite?: string | string[];
+  };
+};
+
+function readParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (Array.isArray(value) && value.length > 0) {
+    const first = value[0]?.trim();
+    return first ? first : null;
+  }
+
+  return null;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const inviteGroup = readParam(searchParams?.group);
+  const inviteEmail = readParam(searchParams?.invite);
+
+  if (inviteGroup && inviteEmail) {
+    redirect(`/group/${inviteGroup}?invite=${encodeURIComponent(inviteEmail)}`);
+  }
+
+  const bootstrap = await createGroupWithHost({
+    hostEmail: "host@hawks.demo"
+  });
+
+  if (!bootstrap.ok) {
+    throw new Error(bootstrap.error.message);
+  }
+
+  redirect(
+    `/group/${bootstrap.data.group.id}?participant=${bootstrap.data.participant.id}`
   );
 }
