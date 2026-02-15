@@ -135,3 +135,14 @@ export type RemoveCartItemPayload = {
   success: true;
   cartItemId: string;
 };
+
+export type CheckoutActionInput = {
+  groupId: string;
+  hostParticipantId: string;
+};
+
+export type GroupTransition = {
+  group: Group;
+  previousStatus: GroupStatus;
+  nextStatus: GroupStatus;
+};
