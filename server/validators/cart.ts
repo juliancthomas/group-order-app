@@ -92,6 +92,16 @@ export function validateUpsertCartItemInput(
     };
   }
 
+  if (Math.abs(input.quantity) > 1000000) {
+    return {
+      ok: false,
+      error: {
+        code: "invalid_input",
+        message: "Quantity is outside a safe numeric range."
+      }
+    };
+  }
+
   return {
     ok: true,
     data: {

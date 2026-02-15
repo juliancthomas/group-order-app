@@ -7,6 +7,8 @@ import type {
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_LENGTH = 254;
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -16,12 +18,20 @@ export function isUuid(value: string): boolean {
   return UUID_PATTERN.test(value);
 }
 
+function isValidEmail(email: string): boolean {
+  if (!email || email.length > MAX_EMAIL_LENGTH) {
+    return false;
+  }
+
+  return EMAIL_PATTERN.test(email);
+}
+
 export function validateCreateGroupWithHostInput(
   input: CreateGroupWithHostInput
 ): ActionResult<{ hostEmail: string }> {
   const hostEmail = normalizeEmail(input.hostEmail ?? "");
 
-  if (!hostEmail || !hostEmail.includes("@")) {
+  if (!isValidEmail(hostEmail)) {
     return {
       ok: false,
       error: {
@@ -50,7 +60,7 @@ export function validateJoinOrResumeParticipantInput(
     };
   }
 
-  if (!email || !email.includes("@")) {
+  if (!isValidEmail(email)) {
     return {
       ok: false,
       error: {

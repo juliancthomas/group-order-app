@@ -42,7 +42,7 @@ function isLikelyGroupFull(message: string): boolean {
   return normalized.includes("maximum of 3 participants") || normalized.includes("group is not open");
 }
 
-function InvalidInviteState({ groupId }: { groupId: string }) {
+function InvalidInviteState({ groupId, reason }: { groupId: string; reason?: string }) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-6 py-16">
       <section className="w-full rounded-xl border border-brand-dark/20 bg-white p-8 shadow-sm">
@@ -50,6 +50,7 @@ function InvalidInviteState({ groupId }: { groupId: string }) {
         <p className="mt-3 text-brand-dark/80">
           We could not resolve a valid participant session for this group link.
         </p>
+        {reason ? <p className="mt-2 text-xs text-brand-dark/60">Reason: {reason}</p> : null}
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/"
@@ -92,6 +93,34 @@ function MenuFallback() {
   );
 }
 
+function MissingIdentityState({ groupId }: { groupId: string }) {
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-6 py-16">
+      <section className="w-full rounded-xl border border-brand-dark/20 bg-white p-8 shadow-sm">
+        <h1 className="text-2xl font-bold text-brand-dark">Session identity missing</h1>
+        <p className="mt-3 text-brand-dark/80">
+          This tab does not have a valid participant identity query parameter. Open this page from
+          a host invite link or start a new group.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/"
+            className="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white"
+          >
+            Start a new group
+          </Link>
+          <Link
+            href={`/group/${groupId}`}
+            className="rounded-md border border-brand-dark/30 px-4 py-2 text-sm font-medium text-brand-dark"
+          >
+            Retry group route
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export default async function GroupPage({ params, searchParams }: GroupPageProps) {
   const groupId = params.groupId;
   if (!isUuid(groupId)) {
@@ -113,7 +142,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
       if (joinResult.error.code === "forbidden" || isLikelyGroupFull(joinResult.error.message)) {
         redirect(`/full?group=${groupId}`);
       }
-      return <InvalidInviteState groupId={groupId} />;
+      return <InvalidInviteState groupId={groupId} reason={joinResult.error.message} />;
     }
 
     redirect(`/group/${groupId}?participant=${joinResult.data.participant.id}`);
@@ -121,13 +150,13 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   const participantId = readParam(searchParams?.participant);
   if (!participantId || !isUuid(participantId)) {
-    return <InvalidInviteState groupId={groupId} />;
+    return <MissingIdentityState groupId={groupId} />;
   }
 
   const contextResult = await getGroupParticipantContext(groupId, participantId);
   if (!contextResult.ok) {
     if (contextResult.error.code === "not_found" || contextResult.error.code === "forbidden") {
-      return <InvalidInviteState groupId={groupId} />;
+      return <InvalidInviteState groupId={groupId} reason={contextResult.error.message} />;
     }
     throw new Error(contextResult.error.message);
   }

@@ -149,7 +149,11 @@ export function CartIsland({
         });
 
         if (!removeResult.ok) {
-          setMutationError(removeResult.error.message);
+          setMutationError(
+            removeResult.error.code === "forbidden"
+              ? "You do not have permission to remove this item."
+              : removeResult.error.message
+          );
           return;
         }
       } else {
@@ -162,7 +166,11 @@ export function CartIsland({
         });
 
         if (!upsertResult.ok) {
-          setMutationError(upsertResult.error.message);
+          setMutationError(
+            upsertResult.error.code === "forbidden"
+              ? "You do not have permission to update this item."
+              : upsertResult.error.message
+          );
           return;
         }
       }
@@ -275,6 +283,11 @@ export function CartIsland({
       {mutationError ? (
         <p className="mt-3 rounded-md bg-brand-primary/10 px-3 py-2 text-sm text-brand-dark">
           {mutationError}
+        </p>
+      ) : null}
+      {syncState === "reconnecting" ? (
+        <p className="mt-3 rounded-md border border-brand-dark/20 bg-background px-3 py-2 text-sm text-brand-dark/80">
+          Realtime connection lost. Using 5-second polling until sync recovers.
         </p>
       ) : null}
 

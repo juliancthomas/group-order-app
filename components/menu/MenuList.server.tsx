@@ -11,6 +11,7 @@ export async function MenuListServer() {
         <p className="mt-2 text-sm text-brand-dark/80">
           We could not load menu items right now. Please refresh and try again.
         </p>
+        <p className="mt-2 text-xs text-brand-dark/60">Error: {menuResult.error.message}</p>
       </section>
     );
   }
@@ -21,6 +22,9 @@ export async function MenuListServer() {
         <h2 className="text-lg font-semibold text-brand-dark">No items available</h2>
         <p className="mt-2 text-sm text-brand-dark/80">
           Menu items have not been seeded yet. Run `supabase/seed.sql` and refresh.
+        </p>
+        <p className="mt-2 text-xs text-brand-dark/60">
+          After seeding, reload this page to hydrate the SSR menu list.
         </p>
       </section>
     );
