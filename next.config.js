@@ -2,7 +2,12 @@
 const nextConfig = {
   output: "standalone",
   images: {
-    remotePatterns: []
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com"
+      }
+    ]
   }
 };
 

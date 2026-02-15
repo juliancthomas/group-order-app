@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { MenuListServer } from "@/components/menu/MenuList.server";
 import { IdentityRevalidator } from "@/components/session/IdentityRevalidator";
 import { getGroupById, getGroupParticipantContext, toGroup, toParticipant } from "@/server/actions/groups";
 import { joinOrResumeParticipant } from "@/server/actions/participants";
@@ -59,6 +61,29 @@ function InvalidInviteState({ groupId }: { groupId: string }) {
         </div>
       </section>
     </main>
+  );
+}
+
+function MenuFallback() {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-xl font-semibold text-brand-dark">Menu</h2>
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <article
+            key={`menu-skeleton-${index}`}
+            className="overflow-hidden rounded-xl border border-brand-dark/20 bg-background shadow-sm"
+          >
+            <div className="aspect-[16/10] w-full animate-pulse bg-brand-dark/10" />
+            <div className="space-y-2 p-4">
+              <div className="h-4 w-2/3 animate-pulse rounded bg-brand-dark/10" />
+              <div className="h-3 w-full animate-pulse rounded bg-brand-dark/10" />
+              <div className="h-3 w-5/6 animate-pulse rounded bg-brand-dark/10" />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -136,12 +161,10 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
         </div>
       </header>
 
-      <section className="mt-6 rounded-xl border border-brand-dark/20 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-brand-dark">Session initialized</h2>
-        <p className="mt-2 text-sm text-brand-dark/80">
-          Route guards and participant identity revalidation are active. Menu and cart composition
-          are added in upcoming steps.
-        </p>
+      <section className="mt-6">
+        <Suspense fallback={<MenuFallback />}>
+          <MenuListServer />
+        </Suspense>
       </section>
     </main>
   );

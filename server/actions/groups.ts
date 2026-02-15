@@ -7,6 +7,7 @@ import type {
   CreateGroupWithHostInput,
   CreateGroupWithHostPayload,
   Group,
+  MenuItem,
   Participant
 } from "@/types/domain";
 
@@ -14,6 +15,7 @@ import type { Database } from "@/types/db";
 
 type GroupRow = Database["public"]["Tables"]["groups"]["Row"];
 type ParticipantRow = Database["public"]["Tables"]["participants"]["Row"];
+type MenuItemRow = Database["public"]["Tables"]["menu_items"]["Row"];
 
 export function toGroup(row: GroupRow): Group {
   return {
@@ -33,6 +35,16 @@ export function toParticipant(row: ParticipantRow): Participant {
     email: row.email,
     isHost: row.is_host,
     createdAt: row.created_at
+  };
+}
+
+export function toMenuItem(row: MenuItemRow): MenuItem {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    price: row.price,
+    imageUrl: row.image_url
   };
 }
 
@@ -182,4 +194,18 @@ export async function getGroupById(groupId: string): Promise<ActionResult<Group>
   }
 
   return { ok: true, data: toGroup(result.data) };
+}
+
+export async function getMenuItems(): Promise<ActionResult<MenuItem[]>> {
+  const supabase = createSupabaseServerClient();
+  const result = await supabase.from("menu_items").select("*").order("name", { ascending: true });
+
+  if (result.error) {
+    return buildActionError("database_error", result.error.message);
+  }
+
+  return {
+    ok: true,
+    data: result.data.map(toMenuItem)
+  };
 }
