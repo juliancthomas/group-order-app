@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "latest",
     "class-variance-authority": "latest",
     "clsx": "latest",
+    "jsonwebtoken": "^9.0.3",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@playwright/test": "latest",
     "@tailwindcss/postcss": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

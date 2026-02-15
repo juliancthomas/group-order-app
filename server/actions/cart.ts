@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   canActorMutateTarget,
@@ -310,6 +312,8 @@ export async function upsertCartItem(
     return buildActionError("database_error", upsertResult.error.message);
   }
 
+  revalidatePath(`/group/${validation.data.groupId}`);
+
   return {
     ok: true,
     data: toCartItem(upsertResult.data)
@@ -374,6 +378,8 @@ export async function removeCartItem(
     return buildActionError("database_error", deleteResult.error.message);
   }
 
+  revalidatePath(`/group/${validation.data.groupId}`);
+
   return {
     ok: true,
     data: {
@@ -392,4 +398,34 @@ export async function getCartSnapshotForHydration(
   }
 
   return result.data;
+}
+
+export async function addMenuItemToCart(input: {
+  groupId: string;
+  actorParticipantId: string;
+  targetParticipantId: string;
+  menuItemId: string;
+}): Promise<ActionResult<CartItem>> {
+  const supabase = createSupabaseServerClient();
+  const existing = await supabase
+    .from("cart_items")
+    .select("quantity")
+    .eq("group_id", input.groupId)
+    .eq("participant_id", input.targetParticipantId)
+    .eq("menu_item_id", input.menuItemId)
+    .maybeSingle();
+
+  if (existing.error) {
+    return buildActionError("database_error", existing.error.message);
+  }
+
+  const nextQuantity = existing.data ? Math.min(99, existing.data.quantity + 1) : 1;
+
+  return upsertCartItem({
+    groupId: input.groupId,
+    actorParticipantId: input.actorParticipantId,
+    targetParticipantId: input.targetParticipantId,
+    menuItemId: input.menuItemId,
+    quantity: nextQuantity
+  });
 }

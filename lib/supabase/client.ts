@@ -37,6 +37,7 @@ export function createSupabaseBrowserClient() {
 
 type GroupRealtimeSubscriptionInput = {
   groupId: string;
+  accessToken?: string;
   onCartChange: () => void;
   onGroupChange?: () => void;
   onStatusChange?: (status: string) => void;
@@ -44,11 +45,17 @@ type GroupRealtimeSubscriptionInput = {
 
 export function subscribeToGroupRealtime({
   groupId,
+  accessToken,
   onCartChange,
   onGroupChange,
   onStatusChange
 }: GroupRealtimeSubscriptionInput): RealtimeChannel {
   const supabase = createSupabaseBrowserClient();
+
+  // Set auth token if provided for RLS-aware Realtime
+  if (accessToken) {
+    supabase.realtime.setAuth(accessToken);
+  }
 
   const channel = supabase
     .channel(`group-sync:${groupId}`)

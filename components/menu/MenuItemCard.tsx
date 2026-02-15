@@ -5,6 +5,7 @@ import type { MenuItem } from "@/types/domain";
 type MenuItemCardProps = {
   item: MenuItem;
   priority?: boolean;
+  clickable?: boolean;
 };
 
 const MENU_FALLBACK_IMAGE =
@@ -35,11 +36,15 @@ function getSafeImageSrc(value: string): string {
   }
 }
 
-export function MenuItemCard({ item, priority = false }: MenuItemCardProps) {
+export function MenuItemCard({ item, priority = false, clickable = false }: MenuItemCardProps) {
   const imageSrc = getSafeImageSrc(item.imageUrl);
 
   return (
-    <article className="overflow-hidden rounded-xl border border-brand-dark/20 bg-background shadow-sm">
+    <article
+      className={`overflow-hidden rounded-xl border border-brand-dark/20 bg-background shadow-sm ${
+        clickable ? "cursor-pointer transition-transform hover:-translate-y-0.5" : ""
+      }`}
+    >
       <div className="relative aspect-[16/10] w-full bg-brand-dark/5">
         <Image
           src={imageSrc}
@@ -57,6 +62,7 @@ export function MenuItemCard({ item, priority = false }: MenuItemCardProps) {
           <p className="text-sm font-semibold text-brand-primary">{formatCurrency(item.price)}</p>
         </div>
         <p className="text-sm text-brand-dark/80">{item.description}</p>
+        {clickable ? <p className="text-xs font-medium text-brand-dark/70">Click to add to cart</p> : null}
       </div>
     </article>
   );

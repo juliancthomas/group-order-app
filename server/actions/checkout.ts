@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import {
   buildActionError,
   toGroup
@@ -80,6 +82,8 @@ async function transitionGroupStatus(
   if (updateResult.error) {
     return buildActionError("database_error", updateResult.error.message);
   }
+
+  revalidatePath(`/group/${validation.data.groupId}`);
 
   return {
     ok: true,

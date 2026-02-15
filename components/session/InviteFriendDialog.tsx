@@ -62,7 +62,7 @@ export function InviteFriendDialog({
           disabled={disabled}
         />
         <Button onClick={handleInvite} type="button" disabled={disabled}>
-          Open Invite Tab
+          Send Invite (opens new tab)
         </Button>
       </div>
 

@@ -7,6 +7,7 @@ import { CartLockBanner } from "@/components/cart/CartLockBanner";
 import { ParticipantOrderSection } from "@/components/cart/ParticipantOrderSection";
 import { OrderTracker } from "@/components/tracker/OrderTracker";
 import { removeCartItem, upsertCartItem } from "@/server/actions/cart";
+import { generateRealtimeToken } from "@/server/actions/auth";
 import { lockGroup, submitOrder, unlockGroup } from "@/server/actions/checkout";
 import { subscribeToGroupRealtime, unsubscribeFromRealtime } from "@/lib/supabase/client";
 import type { CartItemView, CartSnapshot, ParticipantCartSection } from "@/types/domain";
@@ -106,26 +107,47 @@ export function CartIsland({
   });
 
   useEffect(() => {
-    const channel = subscribeToGroupRealtime({
-      groupId,
-      onCartChange: refreshFromServer,
-      onGroupChange: refreshFromServer,
-      onStatusChange: (status) => {
-        if (status === "SUBSCRIBED") {
-          setSyncState("connected");
-          return;
-        }
+    let channel: ReturnType<typeof subscribeToGroupRealtime> | null = null;
 
-        if (status === "TIMED_OUT" || status === "CHANNEL_ERROR" || status === "CLOSED") {
-          setSyncState("reconnecting");
-        }
+    async function setupRealtimeSubscription() {
+      // Fetch JWT token for RLS-aware Realtime
+      const tokenResult = await generateRealtimeToken({
+        participantId,
+        groupId
+      });
+
+      const accessToken = tokenResult.ok ? tokenResult.data.token : undefined;
+
+      if (!tokenResult.ok) {
+        console.warn("Failed to generate Realtime token:", tokenResult.error.message);
       }
-    });
+
+      channel = subscribeToGroupRealtime({
+        groupId,
+        accessToken,
+        onCartChange: refreshFromServer,
+        onGroupChange: refreshFromServer,
+        onStatusChange: (status) => {
+          if (status === "SUBSCRIBED") {
+            setSyncState("connected");
+            return;
+          }
+
+          if (status === "TIMED_OUT" || status === "CHANNEL_ERROR" || status === "CLOSED") {
+            setSyncState("reconnecting");
+          }
+        }
+      });
+    }
+
+    void setupRealtimeSubscription();
 
     return () => {
-      unsubscribeFromRealtime(channel);
+      if (channel) {
+        unsubscribeFromRealtime(channel);
+      }
     };
-  }, [groupId]);
+  }, [groupId, participantId]);
 
   // Extract polling logic as an Effect Event to avoid restarting interval unnecessarily
   const pollServerForUpdates = useEffectEvent(() => {
@@ -186,10 +208,11 @@ export function CartIsland({
       return;
     }
 
-    setOptimisticSnapshot({ itemId: item.id, quantity: nextQuantity });
     setPendingItemId(item.id);
 
     startCartTransition(async () => {
+      setOptimisticSnapshot({ itemId: item.id, quantity: nextQuantity });
+
       try {
         if (nextQuantity <= 0) {
           const removeResult = await removeCartItem({

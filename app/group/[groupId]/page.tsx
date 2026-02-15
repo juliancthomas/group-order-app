@@ -228,7 +228,11 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
       <section className="mt-6">
         <Suspense fallback={<MenuFallback />}>
-          <MenuListServer />
+          <MenuListServer
+            groupId={group.id}
+            participantId={participant.id}
+            groupStatus={group.status}
+          />
         </Suspense>
       </section>
     </main>
