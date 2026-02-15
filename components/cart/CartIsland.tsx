@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { Activity, useEffect, useEffectEvent, useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { CartLockBanner } from "@/components/cart/CartLockBanner";
@@ -48,7 +48,49 @@ export function CartIsland({
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
-  const [checkoutPending, setCheckoutPending] = useState(false);
+  
+  const [cartMutationPending, startCartTransition] = useTransition();
+  const [checkoutPending, startCheckoutTransition] = useTransition();
+  
+  const [optimisticSnapshot, setOptimisticSnapshot] = useOptimistic(
+    snapshot,
+    (currentSnapshot, optimisticUpdate: { itemId: string; quantity: number }) => {
+      if (currentSnapshot.mode === "guest") {
+        const updatedItems = currentSnapshot.items.map(item =>
+          item.id === optimisticUpdate.itemId
+            ? { ...item, quantity: optimisticUpdate.quantity }
+            : item
+        );
+        const subtotal = updatedItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+        return {
+          ...currentSnapshot,
+          items: updatedItems,
+          subtotal
+        };
+      }
+      
+      // Host mode: update the specific section
+      const updatedSections = currentSnapshot.sections.map(section => {
+        const updatedItems = section.items.map(item =>
+          item.id === optimisticUpdate.itemId
+            ? { ...item, quantity: optimisticUpdate.quantity }
+            : item
+        );
+        const subtotal = updatedItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+        return {
+          ...section,
+          items: updatedItems,
+          subtotal
+        };
+      });
+      const groupTotal = updatedSections.reduce((sum, section) => sum + section.subtotal, 0);
+      return {
+        ...currentSnapshot,
+        sections: updatedSections,
+        groupTotal
+      };
+    }
+  );
 
   useEffect(() => {
     setGroupStatus(initialGroupStatus);
@@ -106,36 +148,36 @@ export function CartIsland({
   }, [syncState]);
 
   const totalItems = useMemo(() => {
-    if (snapshot.mode === "host") {
-      return snapshot.sections.reduce(
+    if (optimisticSnapshot.mode === "host") {
+      return optimisticSnapshot.sections.reduce(
         (sum, section) => sum + section.items.reduce((count, item) => count + item.quantity, 0),
         0
       );
     }
 
-    return snapshot.items.reduce((sum, item) => sum + item.quantity, 0);
-  }, [snapshot]);
+    return optimisticSnapshot.items.reduce((sum, item) => sum + item.quantity, 0);
+  }, [optimisticSnapshot]);
 
   const hostSections = useMemo<ParticipantCartSection[]>(() => {
-    if (snapshot.mode !== "host") {
+    if (optimisticSnapshot.mode !== "host") {
       return [];
     }
-    return snapshot.sections;
-  }, [snapshot]);
+    return optimisticSnapshot.sections;
+  }, [optimisticSnapshot]);
 
   const guestSection = useMemo<ParticipantCartSection | null>(() => {
-    if (snapshot.mode !== "guest") {
+    if (optimisticSnapshot.mode !== "guest") {
       return null;
     }
 
     return {
-      participantId: snapshot.participantId,
+      participantId: optimisticSnapshot.participantId,
       participantEmail: "Your order",
       isHost: false,
-      items: snapshot.items,
-      subtotal: snapshot.subtotal
+      items: optimisticSnapshot.items,
+      subtotal: optimisticSnapshot.subtotal
     };
-  }, [snapshot]);
+  }, [optimisticSnapshot]);
 
   async function runQuantityMutation(item: CartItemView, nextQuantity: number) {
     setMutationError(null);
@@ -144,49 +186,54 @@ export function CartIsland({
       return;
     }
 
+    setOptimisticSnapshot({ itemId: item.id, quantity: nextQuantity });
     setPendingItemId(item.id);
 
-    try {
-      if (nextQuantity <= 0) {
-        const removeResult = await removeCartItem({
-          groupId,
-          actorParticipantId: participantId,
-          cartItemId: item.id
-        });
+    startCartTransition(async () => {
+      try {
+        if (nextQuantity <= 0) {
+          const removeResult = await removeCartItem({
+            groupId,
+            actorParticipantId: participantId,
+            cartItemId: item.id
+          });
 
-        if (!removeResult.ok) {
-          setMutationError(
-            removeResult.error.code === "forbidden"
-              ? "You do not have permission to remove this item."
-              : removeResult.error.message
-          );
-          return;
-        }
-      } else {
-        const upsertResult = await upsertCartItem({
-          groupId,
-          actorParticipantId: participantId,
-          targetParticipantId: item.participantId,
-          menuItemId: item.menuItemId,
-          quantity: nextQuantity
-        });
+          if (!removeResult.ok) {
+            setMutationError(
+              removeResult.error.code === "forbidden"
+                ? "You do not have permission to remove this item."
+                : removeResult.error.message
+            );
+            setPendingItemId(null);
+            return;
+          }
+        } else {
+          const upsertResult = await upsertCartItem({
+            groupId,
+            actorParticipantId: participantId,
+            targetParticipantId: item.participantId,
+            menuItemId: item.menuItemId,
+            quantity: nextQuantity
+          });
 
-        if (!upsertResult.ok) {
-          setMutationError(
-            upsertResult.error.code === "forbidden"
-              ? "You do not have permission to update this item."
-              : upsertResult.error.message
-          );
-          return;
+          if (!upsertResult.ok) {
+            setMutationError(
+              upsertResult.error.code === "forbidden"
+                ? "You do not have permission to update this item."
+                : upsertResult.error.message
+            );
+            setPendingItemId(null);
+            return;
+          }
         }
+
+        router.refresh();
+        setPendingItemId(null);
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : "Cart update failed.");
+        setPendingItemId(null);
       }
-
-      router.refresh();
-    } catch (error) {
-      setMutationError(error instanceof Error ? error.message : "Cart update failed.");
-    } finally {
-      setPendingItemId(null);
-    }
+    });
   }
 
   function canEditSection(section: ParticipantCartSection): boolean {
@@ -195,29 +242,28 @@ export function CartIsland({
 
   async function runCheckoutTransition(action: "lock" | "unlock" | "submit") {
     setMutationError(null);
-    setCheckoutPending(true);
 
-    try {
-      const result =
-        action === "lock"
-          ? await lockGroup({ groupId, hostParticipantId: participantId })
-          : action === "unlock"
-            ? await unlockGroup({ groupId, hostParticipantId: participantId })
-            : await submitOrder({ groupId, hostParticipantId: participantId });
+    startCheckoutTransition(async () => {
+      try {
+        const result =
+          action === "lock"
+            ? await lockGroup({ groupId, hostParticipantId: participantId })
+            : action === "unlock"
+              ? await unlockGroup({ groupId, hostParticipantId: participantId })
+              : await submitOrder({ groupId, hostParticipantId: participantId });
 
-      if (!result.ok) {
-        setMutationError(result.error.message);
-        return;
+        if (!result.ok) {
+          setMutationError(result.error.message);
+          return;
+        }
+
+        setGroupStatus(result.data.group.status);
+        setSubmittedAt(result.data.group.submittedAt);
+        router.refresh();
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : "Checkout transition failed.");
       }
-
-      setGroupStatus(result.data.group.status);
-      setSubmittedAt(result.data.group.submittedAt);
-      router.refresh();
-    } catch (error) {
-      setMutationError(error instanceof Error ? error.message : "Checkout transition failed.");
-    } finally {
-      setCheckoutPending(false);
-    }
+    });
   }
 
   return (
@@ -260,17 +306,17 @@ export function CartIsland({
           <CartLockBanner status={groupStatus} isHost={isHost} />
         </div>
 
-        {snapshot.mode === "host" ? (
+        {optimisticSnapshot.mode === "host" ? (
           <div className="mt-4 grid gap-2 text-sm text-brand-dark/80 sm:grid-cols-2">
             <p>
-              Sections: <span className="font-semibold text-brand-dark">{snapshot.sections.length}</span>
+              Sections: <span className="font-semibold text-brand-dark">{optimisticSnapshot.sections.length}</span>
             </p>
             <p>
               Items: <span className="font-semibold text-brand-dark">{totalItems}</span>
             </p>
             <p className="sm:col-span-2">
               Group total:{" "}
-              <span className="font-semibold text-brand-primary">{formatCurrency(snapshot.groupTotal)}</span>
+              <span className="font-semibold text-brand-primary">{formatCurrency(optimisticSnapshot.groupTotal)}</span>
             </p>
           </div>
         ) : (
@@ -280,7 +326,7 @@ export function CartIsland({
             </p>
             <p>
               Subtotal:{" "}
-              <span className="font-semibold text-brand-primary">{formatCurrency(snapshot.subtotal)}</span>
+              <span className="font-semibold text-brand-primary">{formatCurrency(optimisticSnapshot.subtotal)}</span>
             </p>
           </div>
         )}
@@ -327,7 +373,7 @@ export function CartIsland({
         ) : null}
 
         <div className="mt-4 space-y-3">
-          {snapshot.mode === "host"
+          {optimisticSnapshot.mode === "host"
             ? hostSections.map((section) => (
                 <ParticipantOrderSection
                   key={section.participantId}
