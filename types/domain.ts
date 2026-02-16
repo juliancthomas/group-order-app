@@ -80,7 +80,8 @@ export type ActionErrorCode =
   | "not_found"
   | "forbidden"
   | "conflict"
-  | "database_error";
+  | "database_error"
+  | "server_error";
 
 export type ActionError = {
   code: ActionErrorCode;

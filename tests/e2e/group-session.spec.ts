@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 function extractGroupId(url: string): string {
   const parsed = new URL(url);
   const match = parsed.pathname.match(/\/group\/([^/]+)/);
-  if (!match) {
+  if (!match || !match[1]) {
     throw new Error(`Could not parse group ID from URL: ${url}`);
   }
 

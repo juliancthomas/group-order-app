@@ -93,11 +93,15 @@ export function CartIsland({
     }
   );
 
+  // Sync server props to local state after router.refresh() updates
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    // Intentional: syncing server data to local state after refresh
     setGroupStatus(initialGroupStatus);
     setSubmittedAt(initialSubmittedAt);
     setSnapshot(initialSnapshot);
     setLastRefreshAt(new Date());
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [initialGroupStatus, initialSnapshot, initialSubmittedAt]);
 
   // Extract refresh logic as an Effect Event to avoid reconnecting when router changes

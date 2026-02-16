@@ -62,10 +62,16 @@ export function OrderTracker({ submittedAt }: OrderTrackerProps) {
     };
   }, []);
 
+  // Compute current server time (tick triggers re-computation every second)
+  const serverNowIso = useMemo(
+    () => new Date(Date.now() + serverOffsetMs).toISOString(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serverOffsetMs, tick]
+  );
+
   const tracker = useMemo(() => {
-    const serverNowIso = new Date(Date.now() + serverOffsetMs).toISOString();
     return computeTrackerStage({ submittedAt, serverNowIso });
-  }, [serverOffsetMs, submittedAt, tick]);
+  }, [submittedAt, serverNowIso]);
 
   const activeIndex = getStageIndex(tracker.stage);
 
