@@ -1,8 +1,9 @@
 # Hawks Group Order
 
+![Demo](docs/demo.gif)
+
 A real-time collaborative group ordering app built with Next.js 15, Supabase, and Tailwind CSS v4.
 
-![Demo](docs/demo.gif)
 *Real-time collaboration: changes sync instantly across all participants*
 
 ## 🎯 Challenge Overview
