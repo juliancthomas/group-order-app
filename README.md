@@ -20,7 +20,7 @@ This project demonstrates:
 
 ### 1. Clone the repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/juliancthomas/group-order-app
 cd group-order-project
 npm install
 ```
