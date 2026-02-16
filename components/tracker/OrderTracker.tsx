@@ -78,9 +78,6 @@ export function OrderTracker({ submittedAt }: OrderTrackerProps) {
   return (
     <section className="rounded-xl border border-brand-dark/20 bg-background p-6 shadow-sm">
       <h2 className="text-xl font-semibold text-brand-dark">Order Tracker</h2>
-      <p className="mt-2 text-sm text-brand-dark/80">
-        Shared timeline based on submission timestamp.
-      </p>
 
       <ol className="mt-5 grid gap-3 sm:grid-cols-3">
         {STAGES.map((stage, index) => {
@@ -99,18 +96,10 @@ export function OrderTracker({ submittedAt }: OrderTrackerProps) {
               }`}
             >
               <p className="text-sm font-semibold text-brand-dark">{stage.label}</p>
-              <p className="mt-1 text-xs text-brand-dark/70">Starts at {stage.startsAt}s</p>
             </li>
           );
         })}
       </ol>
-
-      <p className="mt-4 text-sm text-brand-dark/80">
-        Current stage: <span className="font-semibold text-brand-dark">{tracker.stage}</span>
-      </p>
-      <p className="mt-1 text-xs text-brand-dark/70">
-        Elapsed time since submit: {tracker.elapsedSeconds}s
-      </p>
     </section>
   );
 }

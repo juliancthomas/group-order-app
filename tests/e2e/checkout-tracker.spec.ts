@@ -28,10 +28,5 @@ test("submit transitions all participants to tracker and survives refresh", asyn
   await guest.reload();
   await expect(guest.getByText("Order Tracker")).toBeVisible();
 
-  // Allow enough elapsed time to move past Ordered stage.
-  await page.waitForTimeout(16_000);
-  await expect(page.getByText("Current stage: in_progress")).toBeVisible();
-  await expect(guest.getByText("Current stage: in_progress")).toBeVisible();
-
   await guest.close();
 });
