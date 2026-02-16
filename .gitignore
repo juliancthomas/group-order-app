@@ -1,6 +1,5 @@
 .env.local
 prompts
-docs
 node_modules
 .next
 coverage
